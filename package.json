@@ -1,0 +1,19 @@
+{
+  "name": "ds-harness-plugin-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Personal DeepSeek Harness plugin development workspace",
+  "type": "module",
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@11.28.5",
+  "engines": {
+    "node": ">=24 <25",
+    "pnpm": "11.28.5"
+  },
+  "scripts": {
+    "check": "node scripts/check.mjs && pnpm -r --if-present run check",
+    "test": "node --test scripts/check.test.mjs && pnpm -r --if-present run test",
+    "build": "pnpm -r --if-present run build",
+    "validate": "pnpm check && pnpm test && pnpm build"
+  }
+}

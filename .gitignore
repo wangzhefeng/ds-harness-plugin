@@ -22,8 +22,15 @@ coverage/
 *.pem
 *.key
 
-# Local DSH runtime data
+# Local DSH runtime data and credential backups
 .dsh/
+.credentials.yaml*
+.credentials.yml*
+*.bak
+*.backup
+
+# Local package archives
+*.tgz
 
 # Logs and temporary files
 *.log
