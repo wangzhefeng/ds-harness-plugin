@@ -1,0 +1,3 @@
+- insert:
+    - id: wangzf-openai-codex-oauth
+      name: '@wangzf/dsh-openai-codex-oauth'
