@@ -77,6 +77,9 @@ export function createController({ authorization, metadata, openBrowser, callbac
       ...(a?.pending && active(a) ? { promptId: a.pending.id } : {}),
     };
   }
+  function supportsOAuth(entry) {
+    return typeof entry?.inFlight === 'boolean' && Array.isArray(entry.methods) && entry.methods.some(m => m?.id === 'oauth');
+  }
   async function snapshot(owner) {
     if (disposed) fail('CLOSED');
     const meta = await metadata();
@@ -85,17 +88,25 @@ export function createController({ authorization, metadata, openBrowser, callbac
     if (own) touch(own);
     return {
       ...meta,
-      available: Boolean(meta.writable && meta.settingsNs && entry?.methods.some(m => m.id === 'oauth')),
+      available: Boolean(meta.writable && meta.settingsNs && supportsOAuth(entry)),
       busy: Boolean((active(attempt) && !own) || (entry?.inFlight && !active(own))),
       ...view(own),
     };
   }
+  function unsupported(a) {
+    a.error = 'UNSUPPORTED_FLOW';
+    stop(a, 'failed');
+  }
   function notify(a, notice) {
     // Never relay upstream strings, links, codes, or exceptions to the client/log.
     if (!active(a) || a.controller.signal.aborted) return;
-    if (notice.url === undefined) return;
+    if (!notice || typeof notice !== 'object' || Object.keys(notice).some(k => k !== 'message' && k !== 'url')) { unsupported(a); return; }
+    if (notice.url === undefined) {
+      if (typeof notice.message !== 'string') unsupported(a);
+      return;
+    }
     const url = authorizationUrl(notice.url);
-    if (!url || a.opened) { a.error = 'UNSUPPORTED_FLOW'; stop(a, 'failed'); return; }
+    if (!url || a.opened) { unsupported(a); return; }
     a.opened = true;
     a.state = url.searchParams.get('state');
     a.phase = 'waiting';
@@ -105,10 +116,11 @@ export function createController({ authorization, metadata, openBrowser, callbac
     }).catch(() => { if (active(a)) { a.error = 'OPEN_FAILED'; stop(a, 'failed'); } });
   }
   async function prompt(a, p) {
-    if (!active(a) || a.controller.signal.aborted || p.signal?.aborted) fail('PROMPT_CHANGED');
-    if (p.kind === 'select' && p.options?.length === 2 &&
-        p.options.some(o => o.id === 'browser') && p.options.some(o => o.id === 'device_code')) return 'browser';
-    if (p.kind !== 'text' || p.placeholder !== 'http://localhost:1455/auth/callback' || !a.state || a.pending) {
+    if (!active(a) || a.controller.signal.aborted || p?.signal?.aborted) fail('PROMPT_CHANGED');
+    if (p?.kind === 'select' && Array.isArray(p.options) && p.options.length === 2 &&
+        p.options.some(o => o?.id === 'browser') && p.options.some(o => o?.id === 'device_code')) return 'browser';
+    if (p?.kind !== 'text' || p.placeholder !== 'http://localhost:1455/auth/callback' || !a.state || a.pending) {
+      unsupported(a);
       fail('UNSUPPORTED_FLOW');
     }
     const id = randomUUID();
@@ -146,14 +158,18 @@ export function createController({ authorization, metadata, openBrowser, callbac
       if (!active(a)) return snapshot(owner);
       if (!meta.writable || !meta.settingsNs) fail('UNAVAILABLE');
       const entry = authorization.describe(KEY);
-      if (!entry?.methods.some(m => m.id === 'oauth')) fail('NO_FLOW');
+      if (!supportsOAuth(entry)) fail('NO_FLOW');
       if (entry.inFlight) fail('ALREADY_IN_FLIGHT');
       // Promise is retained/handled. Service cancellation may settle before its flow exits.
       a.done = authorization.begin({ key: KEY, method: 'oauth', signal: a.controller.signal,
         interaction: { notify: n => notify(a, n), prompt: p => prompt(a, p) } })
         .then(result => {
-          if (result.status === 'authorized') a.phase = a.controller.signal.aborted ? 'saved-after-cancel' : 'saved';
-          else if (active(a)) a.phase = 'cancel-requested';
+          if (a.phase === 'failed') return;
+          if (result?.status === 'authorized') a.phase = a.controller.signal.aborted ? 'saved-after-cancel' : 'saved';
+          else if (active(a)) {
+            if (result?.status === 'cancelled') a.phase = 'cancel-requested';
+            else unsupported(a);
+          }
         }, error => {
           if (active(a)) { a.error = safeCode(error); a.phase = 'failed'; }
         }).finally(() => { clearTimer(a.timer); clearPrompt(a); a.state = undefined; });

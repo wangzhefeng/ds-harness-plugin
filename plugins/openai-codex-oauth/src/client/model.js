@@ -1,7 +1,7 @@
 // Pure browser controller; tests inject transport/clock. Never persist owner or input.
 export function createEntryClient({ fetch: fetcher, crypto, setTimer = setTimeout, clearTimer = clearTimeout }) {
   let owner = '', attempted = false, disposed = false, polling, chain = Promise.resolve();
-  let snapshot = { phase: 'idle', loading: false, configured: false, available: false, busy: false, settingsNs: null };
+  let snapshot = { phase: 'idle', loading: false, configured: false, grantSaved: null, available: false, busy: false, settingsNs: null };
   const listeners = new Set();
   const active = () => ['starting', 'waiting', 'saving', 'unknown'].includes(snapshot.phase);
   function emit(patch) { snapshot = { ...snapshot, ...patch }; for (const fn of listeners) fn(); }
@@ -38,7 +38,7 @@ export function createEntryClient({ fetch: fetcher, crypto, setTimer = setTimeou
       try {
         const next = await request(action, extra, keepalive);
         const inputError = action === 'status' && next.promptId && snapshot.error === 'CALLBACK_INVALID' ? snapshot.error : undefined;
-        emit({ promptId: undefined, error: inputError, ...next, loading: false });
+        emit({ promptId: undefined, error: inputError, grantSaved: null, ...next, loading: false });
       } catch (error) {
         // Local exceptions and all unknown response fields are excluded from visible state.
         const code = ['NO_FLOW', 'ALREADY_IN_FLIGHT', 'NOT_COMMITTED', 'UNAVAILABLE', 'BAD_REQUEST', 'FORBIDDEN',
@@ -47,7 +47,7 @@ export function createEntryClient({ fetch: fetcher, crypto, setTimer = setTimeou
         const rejectedStart = action === 'start' && ['FORBIDDEN', 'BAD_REQUEST', 'NO_FLOW', 'UNAVAILABLE', 'ALREADY_IN_FLIGHT'].includes(code);
         const uncertain = attempted && active() && !['CALLBACK_INVALID', 'PROMPT_CHANGED'].includes(code);
         if (rejectedStart) attempted = false;
-        emit({ loading: false, error: code,
+        emit({ loading: false, error: code, grantSaved: null,
           ...(rejectedStart ? { phase: 'failed', promptId: undefined }
             : uncertain ? { phase: 'unknown', promptId: undefined } : {}),
         });

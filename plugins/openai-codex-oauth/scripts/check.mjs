@@ -19,7 +19,7 @@ for (const folder of ['src', 'scripts', 'tests']) for (const file of await files
   assert.equal(result.status, 0, `${path.relative(root, file)}: ${result.stderr}`);
 }
 const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
-assert.equal(manifest.private, true); assert.equal(manifest.engines.dsh, '0.2.2-rc.2');
+assert.equal(manifest.private, true); assert.equal(manifest.engines.dsh, '0.2.2-rc.2 || 0.2.2-rc.3 || >=0.2.2-rc.5 <0.2.2');
 assert.equal(manifest.dsh.client.platform, 'web'); assert.equal(manifest.dependencies, undefined);
 const en = JSON.parse(await readFile(path.join(root, 'locale/en.json'), 'utf8'));
 const zh = JSON.parse(await readFile(path.join(root, 'locale/zh.json'), 'utf8'));

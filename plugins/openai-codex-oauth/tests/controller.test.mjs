@@ -125,6 +125,32 @@ test('missing flow, busy flow, readonly storage refuse begin', async () => {
     assert.equal(s.phase, 'failed'); assert.equal(f.count, 0); f.controller.dispose();
   }
 });
+test('changed flow metadata or non-OAuth method cannot start login', async () => {
+  for (const entry of [{ methods: [{}], inFlight: false }, { methods: [{ id: 'oauth' }] }, { methods: {}, inFlight: false }]) {
+    const f = fixture(); f.authorization.describe = () => entry;
+    try {
+      const state = await f.controller.start(A);
+      assert.equal(state.available, false); assert.equal(state.error, 'NO_FLOW'); assert.equal(f.count, 0);
+    } finally { f.controller.dispose(); }
+  }
+});
+test('unknown interaction aborts even if the flow catches rejection and reports success', async () => {
+  for (const interact of [i => i.prompt({ kind: 'secret' }), i => i.prompt({ kind: 'select', options: [null, {}] }),
+    i => i.notify({ code: 'synthetic-code', url: url() }), i => i.notify({ challenge: 'synthetic-value' })]) {
+    const f = fixture(async r => {
+      try { await interact(r.interaction); } catch { /* simulate a changed flow */ }
+      r.interaction.notify({ url: url() });
+      return { status: 'authorized' };
+    });
+    try {
+      await f.controller.start(A); await tick();
+      const state = await f.controller.snapshot(A);
+      assert.equal(state.phase, 'failed'); assert.equal(state.error, 'UNSUPPORTED_FLOW');
+      assert.equal(f.request.signal.aborted, true); assert.equal(f.opened, 0);
+      assert.doesNotMatch(JSON.stringify(state), /synthetic/);
+    } finally { f.controller.dispose(); }
+  }
+});
 test('exceptions/URLs/prompts are not projected; storage failure is not success', async () => {
   const f = fixture(async () => { throw new Error('synthetic-access synthetic-refresh https://secret.invalid/'); });
   await f.controller.start(A); await tick();
@@ -158,6 +184,10 @@ test('metadata uses only target describeRecord and redacted settings; API key ov
   const value = await metadataReader(ctx)();
   assert.equal(value.apiKeyOverride, true); assert.equal(value.settingsNs, 'actual-key');
   assert.doesNotMatch(JSON.stringify(value), /SYNTHETIC|synthetic-token|payload/);
+  for (const [configured, kind, expected] of [[true, 'grant', true], [true, 'api-key', false], [false, undefined, false], [true, undefined, null]]) {
+    ctx.credentials.describeRecord = async () => ({ configured, kind, writable: true });
+    assert.equal((await metadataReader(ctx)()).grantSaved, expected);
+  }
 });
 test('browser opener uses fixed executable and no shell; rejects other URLs', async () => {
   if (process.platform !== 'darwin') return;

@@ -21,9 +21,11 @@ pnpm validate
 
 根包始终 private，不发布；每个插件初始也 private。先采用独立手工版本，不引入批量发布工具。新增依赖时更新并提交 pnpm-lock.yaml；CI 使用冻结锁文件。将来采用 TypeScript 或增加共享代码时，再引入实际需要的编译器和 workspace 包。
 
-## 当前已核对的 DSH 基线
+## 已核对的 DSH 基线
 
-2026-11-12 只读检查本机安装包：
+2026-11-19：当前运行时升级到 **0.2.2-rc.5**，插件0.1.7复核Host六项服务、Client插槽与内置OAuth流程后按精确列表加入rc.5并恢复加载，详情见 [rc.5兼容记录](codex-rc5-compatibility.md)。2026-11-16 的 rc.3 修复见 [另一份记录](codex-rc3-compatibility.md)。其后采用[有限加载范围](../plugins/openai-codex-oauth/README.md#兼容范围)：同系列后续 RC 不再逐号改包，但仍需验证实际接口。
+
+2026-11-12 的历史安装基线：
 
 - `/Applications/DeepSeek Harness.app/Contents/Resources/app.asar/dsh/package.json`：runtime 和 `@deepseek-ai/dsh` 版本均为 **0.2.2-rc.2**。
 - 内置 dsh-doc 的 `references/plugin-development.md` 与 `references/host-plugin.md`：bundle 使用 package.json 的 `dsh.bundle.patch` 声明 YAML patch；Host-only 包可不引入构建工具或额外依赖。
@@ -41,12 +43,12 @@ Client artifact 位于插件的 `dist/`，被 Git 忽略；克隆后必须先构
 ```sh
 pnpm --filter @wangzf/dsh-openai-codex-oauth build
 pnpm --filter @wangzf/dsh-openai-codex-oauth pack --pack-destination "$PWD/tmp/codex-package-review"
-tar -tzf tmp/codex-package-review/wangzf-dsh-openai-codex-oauth-0.1.3.tgz
+tar -tzf tmp/codex-package-review/wangzf-dsh-openai-codex-oauth-0.1.7.tgz
 ```
 
 打包文件仅作本地审查，不应提交 Git，也不等于发布。检查 manifest 中的 files/exports、构建产物、文档、locale、图标和测试源码是否齐全；不得混入真实数据。
 
-当前包无新增依赖。pnpm 可能为新 workspace 包补充一个空 importer；冻结安装可通过，不表示增加了第三方依赖。本次锁文件保持原有内容，新增实际依赖时仍须更新锁文件并审核。
+当前插件仅在开发测试使用固定的 semver 7.8.6，与 rc.5 管理器一致；锁文件记录该依赖，Host 与 Client 不导入它。
 
 ## 本地集成测试
 

@@ -1,66 +1,70 @@
 # 测试与审查记录
 
-记录日期：2026-11-12。当前源码：**0.1.3**。目标：**DSH 0.2.2-rc.2 / 内置 pi-ai 1.3.0**；真实 UI 环境为本机 macOS Desktop。下表区分当前源码自动化结果和历史版本真实观察，不将构建成功当作集成成功。
+更新日期：2026-11-19。当前源码：**0.1.7**。兼容声明：**`0.2.2-rc.2 || 0.2.2-rc.3 || >=0.2.2-rc.5 <0.2.2`**；内置 pi-ai 1.3.0。当前真实 UI 环境为 macOS Desktop rc.5。
+
+授权状态标记：合成测试覆盖 grant、API key、无记录、未知类型及查询失败。未在日常 profile 重载并目视复验新标记。
 
 ## 当前验证矩阵
 
 | 范围 | 证据与结果 | 边界 / 未验证项 |
 | --- | --- | --- |
-| 静态契约 | 已核对 Host authorization、credentials、llm、settings、connection、webServer 及 Client keyed provider-card、owner props、locale、主题与 ModuleLoader 契约 | 源码和 Inspect 不证明运行时交互成功 |
-| 自动化与构建（0.1.3） | `pnpm validate` 通过：插件 **35/35**、仓库 **6/6**；Client artifact 构建及语法检查通过 | 合成数据/mock，不调用真实 OAuth 或模型；没有真实 React DOM 组件测试 |
-| HTTP 模拟集成 | 临时 loopback HTTP 测试通过，覆盖同源 Web 和 Desktop 缺省头形态、no-store 响应及拒绝分支 | admission 和 controller 为 mock；系统分配临时端口，不使用 1455，结束后关闭 server/连接；不证明真实 Web GUI 接入 |
-| 官方安装及移除/重装（0.1.1） | 管理器均报告 `application=applied`，重装版本为 0.1.1 | 不代表进行中授权可安全移除，或凭据可恢复 |
-| Desktop 入口（0.1.1） | 刷新状态后显示启用的“重新授权”“刷新状态”及“已有凭据记录，尚未验证是否有效”；截图与 AX 确认 | 仅验证状态描述读取和按钮显示，未点击授权；无记录时登录标签只有自动化证据 |
-| 紧凑浅色 UI（0.1.2） | 已安装的本地目录链接重建 Client artifact、刷新 Desktop 后，真实看到 12px 灰字与 28 CSS px 高按钮，按钮高度匹配宿主 | 未实测暗色主题、授权弹窗或焦点行为 |
-| 默认折叠 UI（0.1.3） | 原生 details/summary 默认无 open 属性，收起仅“授权设置”一行；artifact 断言和代码审查通过 | 构建后未刷新 Desktop；实际展开/收起、键盘行为及高度**未验证** |
-| 真实 OAuth | **未执行**；授权按钮从未点击 | 系统浏览器授权、自动/手工回调、真实凭据保存均未验证 |
-| 模型与持久化 | **未执行** | 新凭据被 Provider 使用、应用内生成、重启持久化、其他 Provider/记录/模型配置保持不变均未验证 |
-| 生命周期与竞争 | mock 覆盖取消、租约/超时、并发尝试互斥等 | 真实断连、授权进行中卸载、原生端口释放及保存竞争未验证；取消不保证底层立即退出或不再保存，并发保存沿用原生限制 |
+| 静态契约 | 复核 authorization、credentials、llm、settings、connection、webServer、Client插槽、locale及所需主题样式 | 不代表真实授权成功 |
+| 自动化与构建 | `pnpm validate`：插件 **40/40**、仓库 **6/6**；语法、双语、版本声明和artifact断言通过 | 合成服务/数据；没有真实React DOM组件测试 |
+| 源码探针 | rc.3内置Codex OAuth/callback源码哈希与原调查一致，隔离VM探针 **6/6** 通过 | 刻画现有限制，不证明真实端口竞态已修复；不触碰1455 |
+| HTTP模拟集成 | 同源Web及Desktop缺省头、认证/归属/格式/上限/超时拒绝分支通过 | admission和controller为mock；只绑定临时loopback端口并关闭，不代表真实Web GUI验收 |
+| rc.3安装恢复 | 0.1.3曾因版本不匹配拒载；获准后由管理器移除/重装0.1.4，applied，插槽active | 未使用版本豁免，未修改应用安装包；真实授权进行中移除未验证 |
+| rc.5恢复加载（0.1.7） | 0.1.6因`engines.dsh`不含rc.5被判incompatible、rows为空；复核六项Host服务、Client插槽、模块加载与pi-ai流程后按精确列表加入rc.5。管理器读到0.1.7无error，`set_bundle` HMR重应用返回applied；未认证POST返回401 FORBIDDEN，两个Client插槽占用active | 未使用版本豁免；未在rc.5真实页面点击入口或发起登录 |
+| 当前UI（0.1.6） | 本地链接重建后，真实页面默认只显示“授权 ›”；点击后同行显示“登录”，再次点击后隐藏。前后卡片高度及宿主控件位置保持不变 | 只点击折叠开关，不点击登录；暗色/键盘完整交互未验证 |
+| 按钮匹配 | 按宿主rowActions/secondaryButton样式：12px主文本色、28 CSS px高、0.5px边框、0/10px内边距。实际截图中登录和编辑都是71×44像素 | 截图像素随窗口缩放变化，不将其当作CSS尺寸 |
+| OAuth端到端 | 未自动发起真实OAuth验收；期间曾被动观察到授权等待弹窗，未操作或打断 | 不能据此认定授权完成、保存或有效；真实回调和完整弹窗流程未验证 |
+| 模型与持久化 | 未执行真实模型验收 | 新凭据实际使用、生成完成、重启持久化和其他配置不变仍未验证 |
+| 生命周期与竞争 | mock覆盖取消、租约/超时、双击与不同尝试互斥 | 原生取消不保证底层立即退出或不再保存；真实存储并发保护未增加 |
 
-自动化覆盖控制器状态、互斥、取消、租约/超时、通知失败、回调白名单及 state、API key 覆盖、错误投影；Client transport 的双击、临时输入、串行取消、失联与轮询；路由的 trust/peer/Origin/格式/大小/超时。authorization、credentials、settings 与 browser opener 均为合成或 mock，禁止真实 OAuth fetch。
+测试中的授权、存储、配置和浏览器打开器均为mock或合成实现。当前源码探针独立运行，不纳入默认CI。真实UI验证仅反映上述实际观察。
+
+## 升级后三步检查
+
+1. 在 Plugins 中确认插件已启用、有插件行、无 `incompatible-version` 或启动错误；不要启用版本豁免。
+2. 打开设置 → 模型 → openai-codex，确认卡片有“授权 ›”，不点击登录。Inspect 的 `settings.models.provider-card` 应有对应 settingsNs 的 active 占用；仅有 footer 不算卡片挂载成功。
+3. 向当前本地 GUI 地址发送无 cookie、无 Authorization 的只读状态请求：`curl -q --noproxy '*' -i -X POST "$ORIGIN/api/wangzf/codex-oauth" -H 'Content-Type: application/json' -d '{"action":"status"}'`（先把 `ORIGIN` 设为实际本地 origin）。rc.5 基线是 HTTP 401、`{"error":"FORBIDDEN"}`；404 不能证明认证有效，2xx 应停止使用并调查。无需 OAuth 或模型请求。
+
+本轮在 rc.5 工作区运行 `pnpm validate`。门禁测试使用与管理器一致的 semver 7.8.6 和 `includePrerelease: true`：rc.2 / rc.3 / rc.5 / rc.6 / rc.10 通过，rc.4 / 正式版 / 0.2.3-rc.1 拒绝。rc.6、rc.10 是合成版本号，不是实际安装测试。Host 回归模拟缺服务/方法、缺 OAuth 方法、只读存储、未知提示或通知；断言不开启尝试或中止本次尝试。既有来源、归属、回调及脱敏测试继续执行。
+
+历史证据：rc.5 用户报告登录后修复出网即可使用模型；本轮未读取凭据正文或复测 OAuth/模型。日常 profile 未主动重载/重装；如需操作，先确认无进行中的授权，再单独征得同意。
 
 ## 必要版本历史
 
-- **0.1.0**：官方安装报告 applied，但 provider-card 入口未挂载，未计为 UI 成功。初始自动化为插件 30 项、仓库 6 项。修复了轮询禁用回调输入、输入校验失败停止心跳等问题。
-- **0.1.1**：修复 Desktop 官方转发删除 Origin/Host/Cookie/Sec-Fetch-Site、注入 Host cookie 后，被插件原强制 Origin 检查误拒绝的问题。回归测试先复现 `403 != 200`，修复后通过。仅允许正确同源组合或 Origin 与 Sec-Fetch-Site 同时缺省，保留其余认证检查；空值、字符串 null 及矛盾 Fetch Metadata 仍拒绝。另将启动明确失败与结果未知分开，未知状态禁止重复启动但允许刷新/取消。插件测试增至 35 项。更新遇到 `already-installed`，依管理器提示移除后重装；实际 Desktop 状态读取及按钮显示成功，无需额外重启。
-- **0.1.2**：仅收紧插件作用域样式，正文 12px、secondary 灰色、按钮高 28px、圆角 8px、内边距 4px/10px；保留 alert/status 语义与 focus-visible，授权逻辑不变。本地链接重建并刷新后真实浅色 UI 已确认。
-- **0.1.3**：增加默认折叠的原生 details/summary，收起仅保留 20px 行高的“授权设置”，去掉插件容器上下 padding；不声称与无插件高度完全一致。没有 onToggle 业务调用、不条件卸载 Panel，弹窗是 details 外的兄弟节点；折叠不主动发起登录或取消。自动化与构建通过，但真实折叠交互尚未验证。
+- **0.1.0**：初始入口，插件30项/仓库6项测试；安装后发现Desktop转发兼容问题，未将安装成功当作按钮成功。
+- **0.1.1**：修复Desktop删除Origin后的误拒绝；保持认证、peer、loopback、JSON与自定义头检查。区分启动明确失败和未知结果，插件测试增至35项。官方移除重装后Desktop按钮显示确认。
+- **0.1.2**：缩小字体和按钮，灰色紧凑UI实测通过。
+- **0.1.3**：原生details默认折叠，真实折叠在该版本未验收。
+- **0.1.4**：增加精确rc.3支持，保留rc.2；版本回归先失败后通过。添加dialog的data-window-drag-exclude及断言；源码探针和加载/按钮恢复确认。详见[rc.3兼容记录](../../docs/codex-rc3-compatibility.md)。
+- **0.1.5**：试用右对齐单登录按钮，信息移入弹窗；现已由下一版本替代。
+- **0.1.6**：恢复原扩展区左侧，改为固定高度的同行折叠。只切换hidden属性，不卸载Panel、不触发登录或取消；原生button具有aria-expanded/aria-controls与可见焦点。登录按钮按宿主编辑样式呈现；说明和安全状态留在弹窗。实际展开/收起及按钮匹配已确认。
+- **0.1.7**：DSH升级到rc.5后插件因`engines.dsh`只含rc.2/rc.3被判incompatible、入口消失。复核Host六项服务、Client插槽与注入、模块加载格式及pi-ai 1.3.0的Codex OAuth交互后，按精确列表加入rc.5（不含rc.4，不用豁免）；无代码改动。管理器读到0.1.7无error并applied，未认证路由返回401，两个插槽占用active。详见[rc.5兼容记录](../../docs/codex-rc5-compatibility.md)。
 
-内置流程使用 `models.login` 保存，未走 `session.commit`；authorization 取消可能早于底层退出。本插件保留这一取消/保存语义，不宣称修复并发覆盖或提供取消后绝不保存的保证。
+## UI/UX复核
+
+本轮按源码和实际页面自审：折叠按钮具备可访问名称、展开状态、关联区域；隐藏登录按钮不会占据视觉布局；授权弹窗不位于隐藏区域内；再次登录在活跃尝试期间仅打开进度，不重复发起；未移动宿主DOM或覆盖编辑/删除。没有用自制React/DOM渲染器冒充真实界面。
+
+同行展开保持高度，不等于与完全没有插件时卡片高度相同；公开插槽仍位于宿主标题操作行下方。授权弹窗的键盘、焦点恢复、防拖拽及暗色模式仍待专门验收。
 
 ## 复现命令
 
-使用 Node.js 24、pnpm 11.28.5，在仓库根目录执行：
+使用Node.js 24、pnpm 11.28.5，在仓库根目录执行：
 
 ```sh
 pnpm install --frozen-lockfile --ignore-scripts
 pnpm validate
-# 单包检查、测试与构建
-pnpm --filter @wangzf/dsh-openai-codex-oauth check
-pnpm --filter @wangzf/dsh-openai-codex-oauth test
-pnpm --filter @wangzf/dsh-openai-codex-oauth build
-# 文档和源码空白检查
 git diff --check
-```
-
-[Client artifact](<dist/client.js>) 被 Git 忽略，安装或打包前必须构建。上述命令不安装 DSH 插件、不启动真实 OAuth，也不验证模型可用性。
-
-本地打包审查（不发布、不安装），仍在仓库根目录执行：
-
-```sh
 pnpm --filter @wangzf/dsh-openai-codex-oauth pack --pack-destination "$PWD/tmp/codex-package-review"
-tar -tzf tmp/codex-package-review/wangzf-dsh-openai-codex-oauth-0.1.3.tgz
+tar -tzf tmp/codex-package-review/wangzf-dsh-openai-codex-oauth-0.1.7.tgz
 ```
 
-已有打包审查清单为 21 个普通文件，包含 Host/Client 源码、Client artifact、构建/检查脚本、4 个测试文件、manifest/patch、双语 locale、原创 SVG、README/TESTING；不包含 node_modules、缓存、个人凭据、运行日志或调查源码副本。显式 files 白名单保留开发测试源码，使包内 check/test/build 可用。后续变更需重新审核 tarball，不能仅依赖忽略规则。
+[Client artifact](dist/client.js) 被Git忽略，克隆后需先构建。当前验证使用已有的DSH Node/pnpm；PATH中的Corepack曾因工作区外缓存写入被拒绝，没有重试该缓存操作或安装全局依赖。临时命令桥接只在被忽略的工作区目录中使用，不是构建依赖。
 
-自动检查 Client artifact 不含 Host token/accountId 字段、完整 OAuth 授权 URL、文件/命令执行代码、浏览器存储或日志调用。测试敏感标记均为 synthetic 合成值；Host 固定 OAuth public client ID 不是账号凭据。构建与运行不依赖安装包绝对路径。
+当前包包含22个普通文件：Host/Client源码、Client artifact、构建/检查脚本、5个测试文件、manifest/patch、双语locale、原创SVG、README/TESTING。没有个人数据、日志、截图、缓存或调查源码副本。固定OAuth public client ID和synthetic测试值不是账号凭据。后续版本需重新核对实际tarball。
 
-## 真实验收步骤（待执行）
+## 后续真实验收
 
-1. 准备隔离 `DSH_HOME`/profile、测试账号及允许的外部请求范围，确认 keyed 插槽无冲突。安装通过官方管理器；不读取或导入其他工具凭据。
-2. 构建并刷新页面，确认 0.1.3 默认收起、展开/收起、键盘操作和布局；分别检查浅色/暗色主题及无记录/有记录标签。
-3. 本人点击授权，检查弹窗焦点、Escape、关闭与焦点恢复；分别验证浏览器自动回调和手工完整回调。不要记录 token、授权码、完整回调或可用授权链接。
-4. 分开记录“内置流程报告保存”“Provider 实际使用新凭据”“真实生成完成”，不得互相替代。插件本身没有模型验证按钮。
-5. 检查取消、断连、进行中移除、端口释放及保存竞争；明确原生限制而非预设取消必然阻止保存。
-6. 重启检查持久化及其他配置不变，并验证移除/恢复边界。同真实账号即使本地隔离，也不保证服务端授权相互独立。
+在明确授权的隔离DSH_HOME/profile中，由本人完成OAuth，再分别验证内置保存结果、实际Provider使用、生成完成与重启持久化。不要记录token、授权码、完整回调或可用授权链接。需要补测暗色/键盘交互、无记录标签、授权中取消/断连/卸载、端口释放与其他记录保护。仅更换profile名或使用同一真实账号不能保证凭据与服务端授权相互独立。

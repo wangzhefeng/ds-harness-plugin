@@ -3,7 +3,11 @@ import { createHandler, PATH } from './host/routes.js';
 import { openBrowser } from './host/browser.js';
 
 export const name = 'wangzf-openai-codex-oauth';
-export const inject = ['authorization', 'credentials', 'llm', 'settings', 'connection', 'webServer'];
+const required = {
+  authorization: ['describe', 'begin'], credentials: ['describeRecord'], llm: ['listConfigurableProviders'],
+  settings: ['describe'], connection: ['requestRejection', 'admit'], webServer: ['register', 'getOrigin'],
+};
+export const inject = Object.keys(required);
 
 // DSH supplies these Services. No SDK or pi-ai duplicate is bundled/imported.
 export function metadataReader(ctx) {
@@ -19,6 +23,8 @@ export function metadataReader(ctx) {
     return {
       settingsNs: entry?.settingsNs ?? null,
       configured: record.configured === true,
+      grantSaved: record.configured === false || record.kind === 'api-key' ? false
+        : record.configured === true && record.kind === 'grant' ? true : null,
       writable: record.writable === true && process.platform === 'darwin',
       apiKeyOverride: override,
     };
@@ -26,6 +32,10 @@ export function metadataReader(ctx) {
 }
 export function apply(ctx) {
   ctx.effect(() => {
+    // Cordis checks service presence; also reject renamed/missing methods before exposing the route.
+    for (const [key, methods] of Object.entries(required)) {
+      if (!methods.every(method => typeof ctx[key]?.[method] === 'function')) throw new Error('UNAVAILABLE');
+    }
     const controller = createController({ authorization: ctx.authorization, metadata: metadataReader(ctx),
       openBrowser, callbackHost: () => process.env.PI_OAUTH_CALLBACK_HOST });
     let unregister;

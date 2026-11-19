@@ -120,3 +120,13 @@ test('entry registers actual settings namespace, not provider id; lifecycle disp
     assert.ok(disposals.includes('settings.models.provider-card')); assert.ok(disposals.includes('en'));
   } finally { globalThis.window = oldWindow; }
 });
+
+test('card badge distinguishes an absent grant from unavailable metadata', async () => {
+  const replies = [{ grantSaved: false }, { grantSaved: true }, {}, { grantSaved: true }];
+  const { client } = setup(() => { if (!replies.length) throw new Error(); return replies.shift(); });
+  assert.equal(client.getSnapshot().grantSaved, null);
+  for (const expected of [false, true, null, true, null]) {
+    await client.refresh(); assert.equal(client.getSnapshot().grantSaved, expected);
+  }
+  client.dispose();
+});
